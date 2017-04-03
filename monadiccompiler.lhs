@@ -5,6 +5,10 @@ psyrlt@nottingham.ac.uk, psyvk@nottingham.ac.uk
 
 --------------------------------------------------------------------------------
 
+> import Data.Char
+
+--------------------------------------------------------------------------------
+
 Imperative language:
 
 > data Prog = Assign Name Expr
@@ -80,6 +84,20 @@ State monad:
 
 --------------------------------------------------------------------------------
 
+EXAMPLE CODE: for factorial example
+
+> exCode :: Code
+> exCode = [PUSH 1, POP 'A',
+>           PUSH 10, POP 'B',
+>               LABEL 0,
+>               PUSHV 'B', JUMPZ 1,
+>               PUSHV 'A', PUSHV 'B', DO Mul, POP 'A',
+>               PUSHV 'B', PUSH 1, DO Sub, POP 'B',
+>               JUMP 0,
+>           LABEL 1]
+
+--------------------------------------------------------------------------------
+
 EXEC: executes code and returns final contents of memory
 
 PUSH value n -> put n on front of list
@@ -100,11 +118,13 @@ MYEXEC: Takes the code to execute, the current stack, and the current memory, th
                        need to maintain to enable us to find labels
                        probably a better way of doing this
 
+        NEEDS CHECKING
+
 > myExec :: Code -> Stack -> Mem -> Code -> Mem
 > myExec [] _ m oc              = m
 > myExec (PUSH i:c) s m oc      = myExec c (i:s) m oc
-> myExec (PUSHV n:c) s m oc     = myExec c ((getVal m n):s) m oc
-> myExec (POP n:c) (x:s) m oc   = myExec c s (putVal m n x) oc
+> myExec (PUSHV n:c) s m oc     = myExec c ((getVal n m):s) m oc
+> myExec (POP n:c) (x:s) m oc   = myExec c s (putVal n m x) oc
 > myExec (DO x:c) (i:j:s) m oc  = myExec c ((eval x j i):s) m oc
 > myExec (JUMP l:c) s m oc      = myExec (findLabel oc l) s m oc 
 > myExec (JUMPZ l:c) (x:s) m oc | x == 0    = myExec (findLabel oc l) s m oc
@@ -113,20 +133,38 @@ MYEXEC: Takes the code to execute, the current stack, and the current memory, th
 
 GETVAL: Takes current memory and variable name as parameters
         Returns the value stored in that variable
+        Assumes the name provided exists in the memory
 
-getVal :: Mem -> Name -> Int
+> getVal :: Name -> Mem -> Int
+> getVal x ((n,v):ns) | n == x     = v
+>                     | otherwise  = getVal x ns
 
 PUTVAL: Takes current memory, variable name, and a value as parameters
         Returns new memory with the value stored under the given variable name
+        If the variable already exists, the value is replaced
+        If it does not already exist, a new variable is created, with the value attached
 
-putVal :: Mem -> Name -> Int -> Mem
+> putVal :: Name -> Mem -> Int -> Mem
+> putVal n [] i         = [(n,i)]
+> putVal n ((m,v):ms) i | n == m    = (m,i) : ms
+>                       | otherwise = (m,v) : putVal n ms i
 
 EVAL: Takes an operator and two integers as parameters
       Returns the result of applying the operator to the integers
 
-eval :: Op -> Int -> Int -> Int
+> eval :: Op -> Int -> Int -> Int
+> eval Add x y = x + y
+> eval Sub x y = x - y
+> eval Mul x y = x * y
+> eval Div x y = x `div` y
 
-FINDLABEL: Takes the some code and a label
+FINDLABEL: Takes some code and a label
            Returns the code from the point of the label onwards
+           Assumes the label provided exists in the code
 
-findLabel :: Code -> Label -> Code
+> findLabel :: Code -> Label -> Code
+> findLabel (LABEL l:cs) x | l == x    = (LABEL l):cs
+>                          | otherwise = findLabel cs x
+> findLabel (_:cs) x       = findLabel cs x
+
+--------------------------------------------------------------------------------
