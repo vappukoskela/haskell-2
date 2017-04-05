@@ -177,6 +177,27 @@ COMP: translates program into machine code
 > comp :: Prog -> Code
 > comp p = fst(compprog p 0)
 
+MCOMP: monadic compiler
+
+> mComp :: Prog -> ST Code
+> mComp (Assign v e) = do a <- ((compexpr e) ++ [POP v])
+>                         return a
+
+compprog :: Prog -> Label -> (Code, Label)
+compprog (Assign v e) n = ((compexpr e) ++ [POP v], n)
+compprog (If e p1 p2) n = compif e p1 p2 n
+compprog (While e p) n = compwhile e p n
+compprog (Seqn []) n = ([], n)
+compprog (Seqn (p:ps)) n = ((c++cs), n'')
+                              where
+                                   (c, n') = compprog p n
+                                   (cs, n'') = compprog (Seqn ps) n'
+
+FRESH: returns current state and the next integer as the new state
+
+> fresh :: ST Label
+> fresh = S (\n -> (n, n+1))
+
 COMPEXPR: compiles expressions
 
 > compexpr :: Expr -> Code
