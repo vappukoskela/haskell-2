@@ -180,7 +180,7 @@ COMP: translates program into machine code
 MCOMP: monadic compiler
 
 > mComp :: Prog -> ST Code
-> mComp (Assign n e) = do return [LABEL 100]
+> mComp (Assign n e) = return ((compexpr e) ++  [POP n])
 > mComp (While e p) = compw e p
 
 > compw :: Expr -> Prog -> ST Code
@@ -191,13 +191,6 @@ MCOMP: monadic compiler
 >                   [LABEL n] ++ (compexpr e) ++ 
 >                   [JUMPZ n'] ++ cp ++ 
 >                   [JUMP n, LABEL n'])
-
-                    ([LABEL n] ++ ce ++
-                   [JUMPZ (n+1)] ++ cp ++ 
-                    [JUMP n, LABEL (n+1)], n')
-                       where
-                           ce = compexpr e
-                           (cp, n') = compprog p (n+2)
 
  mComp (Assign v e) = do a <- compassign v e
                          return a
