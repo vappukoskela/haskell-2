@@ -175,13 +175,15 @@ COMP: translates program into machine code
       CURRENTLY DONE WITHOUT MONADS
 
 > comp :: Prog -> Code
-> comp p = fst(compprog p 0)
+> comp p = fst (app (mComp p) 0)
 
 MCOMP: monadic compiler
 
 > mComp :: Prog -> ST Code
 > mComp (Assign n e) = return ((compexpr e) ++  [POP n])
+> mComp (If e p1 p2) = compi e p1 p2
 > mComp (While e p) = compw e p
+> mComp (Seqn ps) = comps ps
 
 > compw :: Expr -> Prog -> ST Code
 > compw e p = do n <- fresh
@@ -192,11 +194,21 @@ MCOMP: monadic compiler
 >                   [JUMPZ n'] ++ cp ++ 
 >                   [JUMP n, LABEL n'])
 
- mComp (Assign v e) = do a <- compassign v e
-                         return a
+> compi :: Expr -> Prog -> Prog -> ST Code
+> compi e p1 p2 = do n <- fresh
+>                    n' <- fresh
+>                    c1 <- mComp p1
+>                    c2 <- mComp p2
+>                    return (
+>                       (compexpr e) ++ [JUMPZ n] ++ 
+>                       c1 ++ [JUMP n', LABEL n] ++ 
+>                       c2 ++ [LABEL n'])
 
-> compassign :: Name -> Expr -> Code
-> compassign n e = (compexpr e) ++ [POP n]
+> comps :: [Prog] -> ST Code
+> comps [] = return []
+> comps (p:ps) = do c <- mComp p
+>                   cs <- comps ps
+>                   return (c ++ cs)
 
 compprog :: Prog -> Label -> (Code, Label)
 compprog (Assign v e) n = ((compexpr e) ++ [POP v], n)
