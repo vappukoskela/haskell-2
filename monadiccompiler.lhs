@@ -5,10 +5,6 @@ psyrlt@nottingham.ac.uk, psyvk@nottingham.ac.uk
 
 --------------------------------------------------------------------------------
 
-> import Data.Char
-
---------------------------------------------------------------------------------
-
 Imperative language:
 
 > data Prog = Assign Name Expr
@@ -84,10 +80,10 @@ State monad:
 
 --------------------------------------------------------------------------------
 
-EXAMPLE CODE: for factorial example
+EXAMPLE CODE: factorial example, for testing exec
 
-> exCode :: Code
-> exCode = [PUSH 1, POP 'A',
+> facCode :: Code
+> facCode = [PUSH 1, POP 'A',
 >           PUSH 10, POP 'B',
 >               LABEL 0,
 >               PUSHV 'B', JUMPZ 1,
@@ -106,6 +102,9 @@ EXEC: executes code and returns final contents of memory
 
 MYEXEC: Takes the code to execute, the current stack, and the current memory, then returns the new memory
         If the list of instructions is empty, then return the current memory
+        Recursively works through the list of instructions, dropping instructions off the start of the list
+        as they are executed
+        The original code (oc) is passed around, to allow labels to be found at any point in the code
 
 > myExec :: Code -> Stack -> Mem -> Code -> Mem
 > myExec [] _ m oc              = m
