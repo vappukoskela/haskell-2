@@ -169,9 +169,9 @@ FINDLABEL: Takes some code and a label
 
 --------------------------------------------------------------------------------
 
-COMP: translates program into machine code
-      uses state monad to handle the generation of fresh labels
-      first label is 0
+COMP: Translates program into machine code
+      Uses state monad to handle the generation of fresh labels
+      The first label used is 0
 
 > comp :: Prog -> Code
 > comp p = fst (app (mComp p) 0)
@@ -181,51 +181,48 @@ MCOMP: monadic compiler
 
 > mComp :: Prog -> ST Code
 > mComp (Assign n e) = return ((compexpr e) ++  [POP n])
-> mComp (If e p1 p2) = compi e p1 p2
-> mComp (While e p) = compw e p
-> mComp (Seqn ps) = comps ps
+> mComp (If e p1 p2) = compif e p1 p2
+> mComp (While e p) = compwhile e p
+> mComp (Seqn ps) = compseq ps
 
-> compw :: Expr -> Prog -> ST Code
-> compw e p = do n <- fresh
->                n' <- fresh
->                cp <- mComp p
->                return (
->                   [LABEL n] ++ (compexpr e) ++ 
->                   [JUMPZ n'] ++ cp ++ 
->                   [JUMP n, LABEL n'])
-
-> compi :: Expr -> Prog -> Prog -> ST Code
-> compi e p1 p2 = do n <- fresh
+> compwhile :: Expr -> Prog -> ST Code
+> compwhile e p = do n <- fresh
 >                    n' <- fresh
->                    c1 <- mComp p1
->                    c2 <- mComp p2
+>                    cp <- mComp p
 >                    return (
->                       (compexpr e) ++ [JUMPZ n] ++ 
->                       c1 ++ [JUMP n', LABEL n] ++ 
->                       c2 ++ [LABEL n'])
+>                       [LABEL n] ++ (compexpr e) ++ 
+>                       [JUMPZ n'] ++ cp ++ 
+>                       [JUMP n, LABEL n'])
 
-> comps :: [Prog] -> ST Code
-> comps [] = return []
-> comps (p:ps) = do c <- mComp p
->                   cs <- comps ps
->                   return (c ++ cs)
+> compif :: Expr -> Prog -> Prog -> ST Code
+> compif e p1 p2 = do n <- fresh
+>                     n' <- fresh
+>                     c1 <- mComp p1
+>                     c2 <- mComp p2
+>                     return (
+>                        (compexpr e) ++ [JUMPZ n] ++ 
+>                        c1 ++ [JUMP n', LABEL n] ++ 
+>                        c2 ++ [LABEL n'])
 
-compprog :: Prog -> Label -> (Code, Label)
-compprog (Assign v e) n = ((compexpr e) ++ [POP v], n)
-compprog (If e p1 p2) n = compif e p1 p2 n
-compprog (While e p) n = compwhile e p n
-compprog (Seqn []) n = ([], n)
-compprog (Seqn (p:ps)) n = ((c++cs), n'')
-                              where
-                                   (c, n') = compprog p n
-                                   (cs, n'') = compprog (Seqn ps) n'
+> compseq :: [Prog] -> ST Code
+> compseq [] = return []
+> compseq (p:ps) = do c <- mComp p
+>                     cs <- compseq ps
+>                     return (c ++ cs)
 
-FRESH: returns current state and the next integer as the new state
+FRESH: Returns current state and the next integer as the new state
+       Each label must be a unique integer
 
 > fresh :: ST Label
 > fresh = S (\n -> (n, n+1))
 
-COMPEXPR: compiles expressions
+COMPEXPR: Compiles expressions
+          If the expression is a value, the value is pushed onto the stack
+          If the expression is a variable name, the value of the variable 
+          is pushed onto the stack
+          If the expression is the application of an operator to two
+          expressions, the expressions are evaluated and pushed onto
+          the stack then the operation is carried out
 
 > compexpr :: Expr -> Code
 > compexpr (Val i)     = [PUSH i]
