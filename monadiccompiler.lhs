@@ -100,25 +100,12 @@ EXAMPLE CODE: for factorial example
 
 EXEC: executes code and returns final contents of memory
 
-PUSH value n -> put n on front of list
-POP -> remove first value of list
-
-can we change the type of this so that it takes stack and memory as parameters?
-
 > exec :: Code -> Mem
 > exec [] = []
 > exec c = myExec c [] [] c
 
 MYEXEC: Takes the code to execute, the current stack, and the current memory, then returns the new memory
         If the list of instructions is empty, then return the current memory
-        
-        j is the first argument supplied to an operator, i is the second argument
-
-        TRY TO REMOVE: currently has oc parameter which is the whole code it is executing
-                       need to maintain to enable us to find labels
-                       probably a better way of doing this
-
-        NEEDS CHECKING
 
 > myExec :: Code -> Stack -> Mem -> Code -> Mem
 > myExec [] _ m oc              = m
@@ -202,7 +189,9 @@ COMPWHILE: gets the next two labels we can use as n and n'. It then compiles
 COMPIF: gets the next two labels we can use as n and n'. Then the two programs
         are compiled as c1 and c2. It returns a list of the appropriate label 
         and jump instructions combined with the compiled expression and programs.
-        An if statement is executed 
+        An if statement is executed such that the first program is executed if 
+        the expression does not evaluate to 0, else the second program is 
+        executed.
 
 > compif :: Expr -> Prog -> Prog -> ST Code
 > compif e p1 p2 = do n <- fresh
@@ -213,6 +202,9 @@ COMPIF: gets the next two labels we can use as n and n'. Then the two programs
 >                        (compexpr e) ++ [JUMPZ n] ++ 
 >                        c1 ++ [JUMP n', LABEL n] ++ 
 >                        c2 ++ [LABEL n'])
+
+COMPSEQ: recursively compiles a list of programs and appends the resulting code
+         together
 
 > compseq :: [Prog] -> ST Code
 > compseq [] = return []
