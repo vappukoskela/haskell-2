@@ -185,6 +185,11 @@ MCOMP: monadic compiler
 > mComp (While e p) = compwhile e p
 > mComp (Seqn ps) = compseq ps
 
+COMPWHILE: gets the next two labels we can use as n and n'. It then compiles
+           the program to be executed in a loop (cp) and returns a list of 
+           the appropriate label and jump instructions combined with the compiled
+           expression and program
+
 > compwhile :: Expr -> Prog -> ST Code
 > compwhile e p = do n <- fresh
 >                    n' <- fresh
@@ -193,6 +198,11 @@ MCOMP: monadic compiler
 >                       [LABEL n] ++ (compexpr e) ++ 
 >                       [JUMPZ n'] ++ cp ++ 
 >                       [JUMP n, LABEL n'])
+
+COMPIF: gets the next two labels we can use as n and n'. Then the two programs
+        are compiled as c1 and c2. It returns a list of the appropriate label 
+        and jump instructions combined with the compiled expression and programs.
+        An if statement is executed 
 
 > compif :: Expr -> Prog -> Prog -> ST Code
 > compif e p1 p2 = do n <- fresh
